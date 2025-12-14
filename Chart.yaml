@@ -1,0 +1,12 @@
+apiVersion: v2
+name: rustfs  # Changed from minio-helm
+description: A Helm chart for RustFS S3-compatible object storage on Kubernetes
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - rustfs
+  - s3
+  - object-storage
+sources:
+  - https://github.com/rustfs/rustfs

@@ -1,0 +1,132 @@
+# Default values for rustfs-helm.
+
+# -- Number of RustFS pods to run.
+# For single-node mode set to 1.
+# For distributed mode set >1 (requires cluster configuration).
+replicaCount: 1
+
+image:
+  # -- RustFS container image repository
+  repository: rustfs/rustfs
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Image tag (defaults to Chart.appVersion)
+  tag: ""
+
+# -- Service account configuration
+serviceAccount:
+  # -- Whether to create a service account
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- Name of the service account (if not created)
+  name: ""
+
+# -- Service configuration
+service:
+  # -- Service type (ClusterIP, NodePort, LoadBalancer, etc.)
+  type: ClusterIP
+  # -- Port for the S3 API
+  port: 9000
+  # -- Port for the RustFS console (web UI)
+  consolePort: 9001
+
+# -- Ingress configuration
+ingress:
+  # -- Enable creation of Ingress resources for API and console
+  enabled: true
+  # -- IngressClass resource to use (e.g., "nginx", "traefik")
+  className: "nginx"
+  # -- Annotations to add to both API and console Ingress resources
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  # -- List of hostnames for the S3 API Ingress
+  # Multiple hosts can be added for multi-domain setups
+  apiHosts:
+    - rustfsapi.lvh.me
+  # -- List of hostnames for the RustFS web console Ingress
+  # Multiple hosts can be added if needed
+  consoleHosts:
+    - rustfsconsole.lvh.me
+  # -- TLS configuration for the Ingress resources
+  # Example:
+  # tls:
+  #   - secretName: rustfs-tls-secret
+  #     hosts:
+  #       - rustfsapi.lvh.me
+  #       - rustfsconsole.lvh.me
+  tls: []
+
+# -- Persistence configuration
+persistence:
+  # -- Enable persistent storage
+  enabled: true
+  # -- Storage class to use (leave empty for default)
+  storageClass: ""
+  # -- Access mode for the PVC
+  accessMode: ReadWriteOnce
+  # -- Size of the persistent volume
+  size: 32Gi
+
+# -- Resource requests and limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# -- Initialization settings (runs as a one-time Job after deployment)
+initialization:
+  # -- Enable automatic creation of buckets
+  enabled: true
+  # -- List of initial buckets to create
+  buckets:
+    - bucket1
+    - bucket2
+
+# -- Root authentication (used for init and console login)
+auth:
+  # -- Root access key (console login username, S3 root user)
+  accessKey: rustfsaccesskey
+  # -- Root secret key (console login password, S3 root secret)
+  secretKey: rustfssecretkey
+
+# -- Pod security context
+securityContext:
+  # -- Run as non-root user
+  runAsNonRoot: true
+  # -- User ID to run as
+  runAsUser: 1001
+  # -- Group ID to run as
+  runAsGroup: 1001
+  # -- File system group ID
+  fsGroup: 1001
+
+# -- Container security context
+containerSecurityContext: {}
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# -- Probes configuration (enabled by default)
+probes:
+  # -- Enable liveness, readiness, and startup probes
+  enabled: true
+
+# -- Future distributed mode settings (for replicaCount > 1)
+cluster:
+  # -- Enable distributed mode (only used if replicaCount > 1)
+  enabled: false
+  # -- List of pod names to use as cluster nodes (auto-generated when enabled)
+  # -- Example: ["rustfs-0", "rustfs-1"]
+  nodes: []

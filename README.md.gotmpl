@@ -1,0 +1,90 @@
+# RustFS Helm Chart
+
+{{ template "chart.description" . }}
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+## About RustFS
+
+RustFS is a high-performance, **open-source**, S3-compatible object storage system built in Rust. It serves as a modern alternative to MinIO, combining simplicity with the memory safety and raw performance of the Rust programming language.
+
+### Key Features
+
+- **Blazing Fast Performance** — Up to 2.3x faster than MinIO for small (4KB) object workloads, leveraging Rust's efficiency and zero-cost abstractions.
+- **Full S3 Compatibility** — Seamless integration with existing S3 tools, clients, and ecosystems; supports migration and coexistence with MinIO, Ceph, and other S3-compatible systems.
+- **Distributed & Scalable** — Fault-tolerant distributed architecture designed for large-scale deployments, data lakes, AI/ML workloads, and big data analytics.
+- **Memory Safe & Secure** — Built in Rust for maximum speed, resource efficiency, and protection against common memory-related vulnerabilities.
+- **Permissive Licensing** — Released under Apache 2.0, avoiding the restrictions of AGPL—ideal for commercial and enterprise use without lock-in.
+
+### Benefits
+
+- **Drop-in MinIO Replacement** → Easily migrate existing MinIO deployments while gaining performance improvements and a more permissive license.
+- **Optimized for Modern Workloads** → Excels in AI, data lakes, high-concurrency I/O, and small-object scenarios common in analytics and machine learning.
+- **Cloud-Native Ready** → Supports Docker/Kubernetes deployments, multi-site replication, encryption, versioning, and WORM compliance.
+- **Community-Driven & Open** → Fully open-source with active development; no hidden telemetry or proprietary restrictions.
+- **Cost-Effective** → High performance and efficiency reduce infrastructure costs while maintaining enterprise-grade reliability.
+
+## Prerequisites
+
+- A Kubernetes cluster (version >=1.19).
+- Helm 3 installed.
+- `kubectl` configured to interact with your cluster.
+- A default StorageClass configured in the cluster for dynamic PVC provisioning.
+- An ingress controller such as ingress-nginx which can be deployed with:
+
+```bash
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
+```
+
+## Configure values.yaml or local-values.yaml
+
+Customize the deployment by editing values.yaml or creating a local-values.yaml file with overrides. Key configurations include:
+
+- image: Specify the RustFS image repository, tag, and pull policy.
+- persistence: Configure the PVC for data storage (size, storage class).
+- ingress: Enable and configure separate Ingress resources for the S3 API and web console.
+- auth: Set access and secret keys for S3 authentication.
+- resources and securityContext: Define resource limits and security settings.
+
+## Enabling Ingress
+
+The chart creates two separate Ingress resources:
+
+- One for the S3 API (port 9000)
+- One for the RustFS web console (port 9001)
+
+If you lack an Ingress controller, install one separately (e.g., NGINX Ingress as shown above).
+For TLS, configure ingress.tls in values.yaml:
+
+```YAML
+ingress:
+  enabled: true
+  className: "nginx"
+  tls:
+    - secretName: rustfs-tls-secret
+      hosts:
+        - rustfsapi.lvh.me
+        - rustfsconsole.lvh.me
+```
+
+### Create the TLS secret beforehand:
+
+```Bash
+kubectl create secret tls rustfs-tls-secret --cert=tls.crt --key=tls.key -n <your-namespace>
+```
+
+## Deployment
+
+1. Verify your cluster's default StorageClass: `kubectl get storageclass`
+1. Ensure a default StorageClass is set, or the PVC will fail to bind.
+1. Create a namespace if needed: `kubectl create ns rustfs`
+1. Customize values by creating a local-values.yaml file with overrides from values.yaml.
+1. Install the Helm chart: `helm install --namespace rustfs -f ./local-values.yaml rustfs .`
+
+{{ template "chart.valuesSection" . }}

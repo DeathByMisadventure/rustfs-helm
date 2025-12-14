@@ -1,0 +1,50 @@
+{{- if .Values.initialization.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "rustfs.fullname" . }}-init
+  labels:
+    {{- include "rustfs.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "rustfs.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "rustfs.serviceAccountName" . }}
+      containers:
+        - name: init
+          image: amazon/aws-cli:latest  # Lightweight S3 tool
+          command:
+            - /bin/sh
+            - -c
+            - |
+              endpoint="http://{{ include "rustfs.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9000"
+              aws configure set aws_access_key_id "$ROOT_ACCESS_KEY"
+              aws configure set aws_secret_access_key "$ROOT_SECRET_KEY"
+              aws configure set region us-east-1  # Dummy region
+
+              # Create buckets
+              {{- range .Values.initialization.buckets }}
+              aws --endpoint-url "$endpoint" s3api create-bucket --bucket {{ . | quote }} || true
+              {{- end }}
+
+          env:
+            - name: ROOT_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rustfs.fullname" . }}-secrets
+                  key: access-key
+            - name: ROOT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rustfs.fullname" . }}-secrets
+                  key: secret-key
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}
