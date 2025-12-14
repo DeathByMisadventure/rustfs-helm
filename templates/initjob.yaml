@@ -17,8 +17,18 @@ spec:
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ include "rustfs.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: init
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
           image: amazon/aws-cli:latest
           command:
             - /bin/sh
@@ -26,7 +36,9 @@ spec:
             - |
               # Use the regular (ClusterIP) service name — this has a stable endpoint
               endpoint="http://{{ include "rustfs.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9000"
-
+              # Use /tmp for AWS config (writable for non-root)
+              export AWS_CONFIG_FILE=/tmp/aws-config
+              export AWS_SHARED_CREDENTIALS_FILE=/tmp/aws-credentials
               aws configure set aws_access_key_id "$ROOT_ACCESS_KEY"
               aws configure set aws_secret_access_key "$ROOT_SECRET_KEY"
               aws configure set region {{ .Values.s3region }}
