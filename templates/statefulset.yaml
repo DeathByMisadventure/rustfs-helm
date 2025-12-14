@@ -38,12 +38,6 @@ spec:
             - --secret-key
             - $(RUSTFS_SECRET_KEY)
             - /data
-            {{- if .Values.cluster.enabled }}
-            - --cluster-nodes
-            {{- range $i := until .Values.replicaCount }}
-            - {{ printf "%s-%d.%s-headless.%s.svc.cluster.local:9000" (include "rustfs.fullname" $) $i (include "rustfs.fullname" $) .Release.Namespace }}
-            {{- end }}
-            {{- end }}
           ports:
             - name: api
               containerPort: 9000
@@ -62,6 +56,19 @@ spec:
                 secretKeyRef:
                   name: {{ include "rustfs.fullname" . }}-secrets
                   key: secret-key
+            - name: RUSTFS_REGION
+              value: "{{ .Values.s3region }}"
+{{- if gt ( int  .Values.replicaCount ) 1 }}
+            - name: RUSTFS_VOLUMES
+              value: >-
+                {{- $root := . }}
+                {{- $fullname := include "rustfs.fullname" $root }}
+                {{- $headless := printf "%s-headless" $fullname }}
+                {{- $ns := $root.Release.Namespace }}
+                {{- $start := 0 }}
+                {{- $end := sub (int .Values.replicaCount) 1 }}
+                http://{{ $fullname }}-{0...{{ $end }}}.{{ $headless }}.{{ $ns }}.svc.cluster.local:9000/data
+                {{- end }}
           volumeMounts:
             - name: data
               mountPath: /data

@@ -2,7 +2,7 @@
 
 # -- Number of RustFS pods to run.
 # For single-node mode set to 1.
-# For distributed mode set >1 (requires cluster configuration).
+# For distributed mode set >=4 (Currently distributed mode is not supported).
 replicaCount: 1
 
 image:
@@ -12,6 +12,9 @@ image:
   pullPolicy: IfNotPresent
   # -- Image tag (defaults to Chart.appVersion)
   tag: ""
+
+# -- S3 region
+s3region: us-east-1
 
 # -- Service account configuration
 serviceAccount:
@@ -122,11 +125,3 @@ affinity: {}
 probes:
   # -- Enable liveness, readiness, and startup probes
   enabled: true
-
-# -- Future distributed mode settings (for replicaCount > 1)
-cluster:
-  # -- Enable distributed mode (only used if replicaCount > 1)
-  enabled: false
-  # -- List of pod names to use as cluster nodes (auto-generated when enabled)
-  # -- Example: ["rustfs-0", "rustfs-1"]
-  nodes: []

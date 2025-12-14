@@ -19,21 +19,36 @@ spec:
       serviceAccountName: {{ include "rustfs.serviceAccountName" . }}
       containers:
         - name: init
-          image: amazon/aws-cli:latest  # Lightweight S3 tool
+          image: amazon/aws-cli:latest
           command:
             - /bin/sh
             - -c
             - |
+              # Use the regular (ClusterIP) service name — this has a stable endpoint
               endpoint="http://{{ include "rustfs.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9000"
+
               aws configure set aws_access_key_id "$ROOT_ACCESS_KEY"
               aws configure set aws_secret_access_key "$ROOT_SECRET_KEY"
-              aws configure set region us-east-1  # Dummy region
+              aws configure set region {{ .Values.s3region }}
 
-              # Create buckets
+              echo "Waiting for RustFS to be ready at $endpoint/health..."
+
+              # Retry loop: check /health endpoint until it returns 200 OK
+              until curl -f -s "$endpoint/health" > /dev/null; do
+                echo "RustFS not ready yet, retrying in 2 seconds..."
+                sleep 2
+              done
+
+              echo "RustFS is ready! Proceeding with bucket creation."
+
+              echo "Creating buckets via $endpoint"
+
               {{- range .Values.initialization.buckets }}
-              aws --endpoint-url "$endpoint" s3api create-bucket --bucket {{ . | quote }} || true
+              echo "Creating bucket: {{ . }}"
+              aws --endpoint-url "$endpoint" s3 mb s3://{{ . | quote }} || true
               {{- end }}
 
+              echo "Bucket initialization complete!"
           env:
             - name: ROOT_ACCESS_KEY
               valueFrom:
