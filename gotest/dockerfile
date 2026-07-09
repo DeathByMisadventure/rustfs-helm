@@ -1,0 +1,16 @@
+# Builder stage
+FROM registry.access.redhat.com/hi/go:latest-builder AS builder
+
+
+WORKDIR /build
+COPY main.go .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -extldflags '-static'" -o auditlog main.go
+
+# Runtime stage (very small)
+FROM registry.access.redhat.com/hi/core-runtime:latest
+
+COPY --from=builder /build/auditlog /usr/local/bin/auditlog
+
+USER 1001
+EXPOSE 9999
+ENTRYPOINT ["/usr/local/bin/auditlog"]
